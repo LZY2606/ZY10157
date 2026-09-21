@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pair-wise GSB Spectrum</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10131a;
+      --panel: #171c26;
+      --panel2: #202637;
+      --line: #303950;
+      --text: #e8edf7;
+      --muted: #9aa8c0;
+      --cyan: #52d3ff;
+      --amber: #ffc15a;
+      --red: #ff6b7a;
+      --green: #74e096;
+      --violet: #b89cff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    header {
+      padding: 18px 22px 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    .muted { color: var(--muted); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+    button, input, select {
+      border: 1px solid var(--line);
+      background: var(--panel2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+    }
+    button { cursor: pointer; }
+    button:hover { border-color: var(--cyan); }
+    button.primary { background: #17384a; border-color: #2a6d89; }
+    button.danger { background: #42232a; border-color: #803844; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(420px, 1.35fr) minmax(360px, 1fr);
+      gap: 14px;
+      padding: 14px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      min-width: 0;
+    }
+    h2 { font-size: 15px; margin: 0 0 10px; }
+    canvas {
+      width: 100%;
+      height: 360px;
+      display: block;
+      background: #0d1118;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .timeline { display: grid; gap: 8px; margin-top: 12px; }
+    .device-row {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+    .track {
+      position: relative;
+      height: 26px;
+      background: #0d1118;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .segment {
+      position: absolute;
+      top: 4px;
+      height: 16px;
+      border-radius: 4px;
+      background: rgba(82,211,255,.55);
+      border: 1px solid var(--cyan);
+    }
+    .graph {
+      min-height: 320px;
+      position: relative;
+      overflow: auto;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 32px 32px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .node {
+      position: absolute;
+      min-width: 112px;
+      max-width: 170px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(32,38,55,.96);
+      font-size: 12px;
+      z-index: 2;
+    }
+    .node strong { color: var(--cyan); }
+    svg.links {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .link-hit { pointer-events: stroke; cursor: pointer; }
+    .table-wrap { max-height: 280px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      padding: 6px;
+      vertical-align: top;
+    }
+    th { color: var(--muted); position: sticky; top: 0; background: var(--panel); }
+    .pill {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .pill.strong, .pill.FORCED { color: var(--green); border-color: var(--green); }
+    .pill.ALTERNATIVE { color: var(--amber); border-color: var(--amber); }
+    .pill.REJECTED { color: var(--red); border-color: var(--red); }
+    .grid2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    dialog {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      width: min(760px, calc(100vw - 30px));
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0,0,0,.65); }
+    .dialog-body { padding: 18px; }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0d1118;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      max-height: 420px;
+      overflow: auto;
+    }
+    .scorebar { display:grid; grid-template-columns: 150px 1fr; gap:5px; align-items:center; }
+    .bar { height: 7px; background:#0d1118; border-radius: 99px; overflow:hidden; }
+    .bar i { display:block; height:100%; background: linear-gradient(90deg, var(--red), var(--amber), var(--green)); }
+    @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Pair-wise GSB 本地干扰事件拼接</h1>
+    <div class="muted">半开频率/时间区间 · 原始桶只读 · 校正、自动链接、人工决议独立版本化</div>
+  </div>
+  <div class="toolbar">
+    <button id="loadFixture" class="primary">载入演示 fixture</button>
+    <button id="autoLinks">生成自动链接版本</button>
+    <button id="publish">发布当前候选</button>
+    <button id="refresh">刷新</button>
+  </div>
+</header>
+
+<main>
+  <div class="grid2">
+    <section>
+      <h2>频率时间瓦片 <span id="versions" class="pill"></span></h2>
+      <canvas id="tileCanvas"></canvas>
+      <div id="timeline" class="timeline"></div>
+    </section>
+    <section>
+      <h2>事件图</h2>
+      <div id="graph" class="graph"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section>
+      <h2>竞争拼接方案</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>方案</th><th>事件</th><th>分数</th><th>操作</th></tr></thead>
+          <tbody id="plansBody"></tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>边证据与不确定性</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>设备对</th><th>真实频叠</th><th>时叠/缺口</th><th>状态</th><th></th></tr></thead>
+          <tbody id="edgesBody"></tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>分段频偏</h2>
+      <div class="toolbar">
+        <input id="deviceId" placeholder="设备 ID，如 scanner-b">
+        <input id="calVersion" placeholder="标定版本，可空">
+        <input id="offsetHz" type="number" placeholder="频偏 Hz">
+        <button id="saveOffset" class="primary">保存新版本</button>
+      </div>
+      <p class="muted">仅添加校正模型版本；不会修改导入的功率桶。</p>
+    </section>
+    <section>
+      <h2>发布与证据</h2>
+      <div id="publishResult" class="muted">尚未发布。发布在一个数据库事务中写入所有方案。</div>
+    </section>
+  </div>
+</main>
+
+<dialog id="detailDialog">
+  <div class="dialog-body">
+    <h2 id="detailTitle">证据</h2>
+    <div id="detailScores"></div>
+    <pre id="detailJson"></pre>
+    <div class="toolbar">
+      <button id="rejectEdge" class="danger">拒绝跨设备链接</button>
+      <button id="forceEdge">保留/强制此边</button>
+      <button id="splitEdge">从此边拆分</button>
+      <button id="closeDialog">关闭</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+let state = null;
+let selectedEdgeKey = null;
+const $ = id => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    headers: options.body ? {"Content-Type": "application/json"} : {},
+    ...options
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.message || response.statusText);
+  }
+  return response.json();
+}
+
+async function loadState() {
+  state = await api("/api/assembly");
+  render();
+}
+
+function render() {
+  renderVersions();
+  renderTiles();
+  renderTimeline();
+  renderGraph();
+  renderPlans();
+  renderEdges();
+}
+
+function renderVersions() {
+  $("versions").textContent =
+    `校正 v${state.correctionVersion} · 自动 ${state.autoLinkVersion ? "v" + state.autoLinkVersion : "无"} · 决议 v${state.decisionVersion}`;
+}
+
+function bounds() {
+  const observations = state.observations;
+  const minTime = Math.min(...observations.map(o => o.startNanos));
+  const maxTime = Math.max(...observations.map(o => o.endNanos));
+  const minFreq = Math.min(...observations.map(o => o.frequencyLowHz));
+  const maxFreq = Math.max(...observations.map(o => o.frequencyHighHz));
+  return {minTime, maxTime, minFreq, maxFreq};
+}
+
+function powerColor(dbm) {
+  const alpha = Math.max(0.08, Math.min(1, (dbm + 95) / 80));
+  return `rgba(82,211,255,${alpha})`;
+}
+
+function renderTiles() {
+  const canvas = $("tileCanvas");
+  const rect = canvas.getBoundingClientRect();
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = rect.width * scale;
+  canvas.height = rect.height * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  if (!state.observations.length) {
+    ctx.fillStyle = "#9aa8c0";
+    ctx.fillText("导入片段后显示瓦片", 14, 22);
+    return;
+  }
+  const b = bounds();
+  const margin = {left: 78, right: 14, top: 20, bottom: 34};
+  const x = t => margin.left + (t - b.minTime) / Math.max(1, b.maxTime - b.minTime)
+      * (rect.width - margin.left - margin.right);
+  const y = f => margin.top + (1 - (f - b.minFreq) / Math.max(1, b.maxFreq - b.minFreq))
+      * (rect.height - margin.top - margin.bottom);
+  ctx.strokeStyle = "#303950";
+  ctx.fillStyle = "#9aa8c0";
+  ctx.font = "11px sans-serif";
+  for (let i = 0; i <= 4; i++) {
+    const yy = margin.top + i * (rect.height - margin.top - margin.bottom) / 4;
+    ctx.beginPath(); ctx.moveTo(margin.left, yy); ctx.lineTo(rect.width - margin.right, yy); ctx.stroke();
+    const freq = b.maxFreq - i * (b.maxFreq - b.minFreq) / 4;
+    ctx.fillText((freq / 1000).toFixed(1) + " kHz", 6, yy + 4);
+  }
+  for (const observation of state.observations) {
+    const px = x(observation.startNanos);
+    const py = y(observation.frequencyHighHz);
+    const width = Math.max(2, x(observation.endNanos) - px);
+    const height = Math.max(2, y(observation.frequencyLowHz) - py);
+    ctx.fillStyle = observation.crossDevice ? "var(--violet)" : powerColor(observation.maxPowerDbm);
+    ctx.fillRect(px, py, width, height);
+    ctx.strokeStyle = observation.deviceId.includes("b") ? "#b89cff" : "#52d3ff";
+    ctx.strokeRect(px + .5, py + .5, width - 1, height - 1);
+  }
+  ctx.fillStyle = "#9aa8c0";
+  ctx.fillText("半开：左/下闭，右/上开；相接瓦片之间无重复能量", margin.left, rect.height - 10);
+}
+
+function renderTimeline() {
+  const devices = [...new Set(state.observations.map(o => o.deviceId))].sort();
+  const b = bounds();
+  $("timeline").innerHTML = devices.map(device => {
+    const segments = state.observations.filter(o => o.deviceId === device);
+    const blocks = segments.map(o => {
+      const left = (o.rawStartNanos - b.minTime) / (b.maxTime - b.minTime) * 100;
+      const width = Math.max(1, (o.rawEndNanos - o.rawStartNanos) / (b.maxTime - b.minTime) * 100);
+      return `<span class="segment" title="${o.id}" style="left:${left}%;width:${width}%"></span>`;
+    }).join("");
+    return `<div class="device-row"><strong>${device}</strong><div class="track">${blocks}</div></div>`;
+  }).join("");
+}
+
+function selectedPlan() {
+  return state.plans.find(p => p.selected) || state.plans[0];
+}
+
+function renderGraph() {
+  const plan = selectedPlan();
+  const graph = $("graph");
+  graph.innerHTML = "";
+  if (!plan) return;
+  const nodes = plan.events.flatMap((event, eventIndex) =>
+    event.evidenceObservations.map((observation, observationIndex) => ({
+      observation,
+      eventIndex,
+      event,
+      x: 36 + eventIndex * 210,
+      y: 32 + observationIndex * 92
+    })));
+  const byId = Object.fromEntries(nodes.map(n => [n.observation.id, n]));
+  const width = Math.max(graph.clientWidth, nodes.reduce((m,n) => Math.max(m,n.x + 170), 0));
+  const height = Math.max(340, nodes.reduce((m,n) => Math.max(m,n.y + 78), 0));
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "links");
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", height);
+  for (const edge of plan.events.flatMap(e => e.evidenceEdges)) {
+    const a = byId[edge.observationIdA], b = byId[edge.observationIdB];
+    if (!a || !b) continue;
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", a.x + 80); line.setAttribute("y1", a.y + 28);
+    line.setAttribute("x2", b.x + 80); line.setAttribute("y2", b.y + 28);
+    line.setAttribute("stroke", edge.crossDevice ? "#b89cff" : "#52d3ff");
+    line.setAttribute("stroke-width", Math.max(1, edge.score * 5));
+    line.setAttribute("data-edge", edge.key);
+    line.setAttribute("class", "link-hit");
+    line.addEventListener("click", () => openEdge(edge.key));
+    svg.appendChild(line);
+  }
+  graph.appendChild(svg);
+  for (const node of nodes) {
+    const element = document.createElement("div");
+    element.className = "node";
+    element.style.left = node.x + "px";
+    element.style.top = node.y + "px";
+    element.innerHTML = `<strong>${node.observation.deviceId}</strong><br>
+      ${(node.observation.frequencyLowHz/1000).toFixed(1)}–${(node.observation.frequencyHighHz/1000).toFixed(1)} kHz<br>
+      <span class="muted">${node.observation.calibrationVersion}${node.observation.extrapolated ? " · 外推" : ""}</span>`;
+    graph.appendChild(element);
+  }
+}
+
+function renderPlans() {
+  $("plansBody").innerHTML = state.plans.map(plan => `<tr>
+    <td><span class="pill ${plan.selected ? "strong" : ""}">${plan.selected ? "选中" : "竞争"}</span>
+      <div class="muted">${short(plan.alternateId)}</div></td>
+    <td>${plan.events.length}</td>
+    <td>${plan.planScore.toFixed(3)}</td>
+    <td><button data-plan="${plan.alternateId}">保留为决议</button></td>
+  </tr>`).join("");
+  document.querySelectorAll("[data-plan]").forEach(button => button.onclick = async () => {
+    await decide("SELECT_PLAN", button.dataset.plan);
+  });
+}
+
+function renderEdges() {
+  $("edgesBody").innerHTML = state.edges.map(edge => `<tr>
+    <td>${edge.deviceIdA} → ${edge.deviceIdB}<div class="muted">${short(edge.key)}</div></td>
+    <td>${edge.frequencyOverlapHz.toFixed(0)} Hz</td>
+    <td>${edge.timeOverlapNanos} ns<br><span class="muted">缺口 ${edge.timeGapNanos} ns</span></td>
+    <td><span class="pill ${edge.status}">${edge.status}</span><br>${edge.score.toFixed(3)}</td>
+    <td><button data-edge="${edge.key}">证据</button></td>
+  </tr>`).join("");
+  document.querySelectorAll("[data-edge]").forEach(button => button.onclick = () =>
+      openEdge(button.dataset.edge));
+}
+
+async function decide(action, target) {
+  await api("/api/decisions", {
+    method: "POST",
+    body: JSON.stringify({expectedVersion: state.decisionVersion, action, target})
+  });
+  await loadState();
+}
+
+function openEdge(edgeKey) {
+  selectedEdgeKey = edgeKey;
+  const edge = state.edges.find(e => e.key === edgeKey);
+  $("detailTitle").textContent = "边证据 " + short(edgeKey);
+  $("detailScores").innerHTML = Object.entries(edge.scoreContributions).map(([name, value]) =>
+      `<div class="scorebar"><span>${name}</span><div class="bar"><i style="width:${value*100}%"></i></div></div>`)
+    .join("") + `<p>缺口：${edge.uncertainty.gapNanos} ns；饱和：${edge.uncertainty.saturatedBucketFraction}；
+      外推：${edge.uncertainty.extrapolatedBucketFraction}；时钟不可辨识：${edge.uncertainty.clockUnidentifiableFraction}</p>`;
+  $("detailJson").textContent = JSON.stringify(edge, null, 2);
+  $("detailDialog").showModal();
+}
+
+function short(value) {
+  return value.slice(0, 14) + "…";
+}
+
+$("loadFixture").onclick = async () => alert(JSON.stringify(await api("/api/demo/fixture", {method:"POST"})));
+$("autoLinks").onclick = async () => { await api("/api/auto-links", {method:"POST", body:"{}"}); await loadState(); };
+$("refresh").onclick = loadState;
+$("publish").onclick = async () => {
+  const result = await api("/api/publications", {method:"POST", body:"{}"});
+  $("publishResult").innerHTML = `<pre>${JSON.stringify({
+    id: result.id,
+    eventCount: result.eventCount,
+    idempotentReplay: result.idempotentReplay,
+    modelVersion: result.modelVersion,
+    autoLinkVersion: result.autoLinkVersion,
+    decisionVersion: result.decisionVersion
+  }, null, 2)}</pre>`;
+};
+$("saveOffset").onclick = async () => {
+  await api("/api/corrections/device-offset", {
+    method: "POST",
+    body: JSON.stringify({
+      deviceId: $("deviceId").value,
+      calibrationVersion: $("calVersion").value || null,
+      offsetHz: Number($("offsetHz").value)
+    })
+  });
+  await loadState();
+};
+$("rejectEdge").onclick = () => decide("REJECT_EDGE", selectedEdgeKey);
+$("forceEdge").onclick = () => decide("FORCE_EDGE", selectedEdgeKey);
+$("splitEdge").onclick = () => decide("SPLIT_AT_EDGE", selectedEdgeKey);
+$("closeDialog").onclick = () => $("detailDialog").close();
+loadState().catch(error => {
+  if (!error.message.includes("Failed to fetch")) alert(error.message);
+});
+ </script>
+</body>
+</html>

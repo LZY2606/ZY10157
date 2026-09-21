@@ -1,0 +1,55 @@
+{
+  "batchId": "demo-boundary-drift-v1",
+  "segments": [
+    {
+      "deviceId": "scanner-a",
+      "startNanos": 1000000000,
+      "endNanos": 1090000000,
+      "centerFrequencyHz": 100000000,
+      "resolutionBandwidthHz": 10000,
+      "deviceTemperatureC": 31.5,
+      "calibrationVersion": "cal-2026-01",
+      "powerBuckets": [-100,-98,-96,-94,-72,-68,-65,-67,-71,-89,-100,-97,-96,-94,-88,-100,-100,-100,-100,-100,-100]
+    },
+    {
+      "deviceId": "scanner-a",
+      "startNanos": 1090000000,
+      "endNanos": 1180000000,
+      "centerFrequencyHz": 100000015,
+      "resolutionBandwidthHz": 10000,
+      "deviceTemperatureC": 31.7,
+      "calibrationVersion": "cal-2026-01",
+      "powerBuckets": [-100,-100,-100,-100,-100,-100,-100,-91,-70,-66,-64,-66,-72,-88,-100,-100,-100,-100,-100,-100,-100]
+    },
+    {
+      "deviceId": "scanner-a",
+      "startNanos": 1280000000,
+      "endNanos": 1370000000,
+      "centerFrequencyHz": 100000015,
+      "resolutionBandwidthHz": 10000,
+      "deviceTemperatureC": 32.1,
+      "calibrationVersion": "cal-2026-01",
+      "powerBuckets": [-100,-100,-100,-100,-100,-100,-100,-92,-69,-63,-18,-65,-70,-90,-100,-100,-100,-100,-100,-100,-100]
+    },
+    {
+      "deviceId": "scanner-b",
+      "startNanos": 1105000000,
+      "endNanos": 1195000000,
+      "centerFrequencyHz": 100010000,
+      "resolutionBandwidthHz": 10000,
+      "deviceTemperatureC": 29.8,
+      "calibrationVersion": "cal-2026-02",
+      "powerBuckets": [-100,-100,-100,-100,-100,-100,-100,-89,-71,-66,-65,-67,-73,-91,-100,-100,-100,-100,-100,-100,-100]
+    },
+    {
+      "deviceId": "scanner-a",
+      "startNanos": 1000000000,
+      "endNanos": 1090000000,
+      "centerFrequencyHz": 100000000,
+      "resolutionBandwidthHz": 10000,
+      "deviceTemperatureC": 31.5,
+      "calibrationVersion": "cal-2026-01",
+      "powerBuckets": [-100,-98,-96,-94,-72,-68,-65,-67,-71,-89,-100,-97,-96,-94,-88,-100,-100,-100,-100,-100,-100]
+    }
+  ]
+}
